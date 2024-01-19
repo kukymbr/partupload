@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Partial Upload Example</title>
+</head>
+<body>
+<h1>Partial upload client</h1>
+<input type="file" id="picker">
+
+<textarea id="logger" readonly style="display: block; width: 100%; height: 200px"></textarea>
+
+<script>
+    const picker = document.getElementById('picker');
+    const logger = document.getElementById("logger")
+    const sizePerChunk = 100000
+
+    picker.addEventListener('change', (event) => {
+        const file = event.target.files[0]
+        const chunksCount = Math.ceil(file.size / sizePerChunk)
+        const uploadID = Math.floor(Math.random() * Date.now()).toString(36)
+        let chunkN = 0
+
+        logger.textContent += "Uploading the file: " + file.name + "\n"
+        logger.textContent += "Upload ID: " + uploadID + "\n"
+        console.log(file)
+        console.log("chunksCount", chunksCount)
+
+        while (chunkN < chunksCount) {
+            const offset = chunkN * sizePerChunk;
+            const data = file.slice(offset, (offset+sizePerChunk));
+
+            let xhr = new XMLHttpRequest();
+
+            xhr.onload = function () {
+                logger.textContent += "Chunk response code: " + xhr.status + "\n"
+                logger.textContent += xhr.responseText + "\n"
+            };
+
+            xhr.open("POST", "http://localhost:8080/", true)
+            xhr.setRequestHeader("Part-Upload-ID", uploadID)
+            xhr.setRequestHeader("Part-Upload-Chunk-Num", chunkN)
+            xhr.setRequestHeader("Part-Upload-Chunks-Count", chunksCount)
+            xhr.setRequestHeader("Part-Upload-Origin-Name", file.name)
+            xhr.setRequestHeader("Part-Upload-Origin-Size", file.size)
+
+            xhr.send(data);
+
+            ++chunkN;
+        }
+    })
+</script>
+</body>
+</html>
